@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Känsliga filer - publiceras INTE
+github-recovery-codes*
+*.key
+*.pem
+secrets.*
+
+# Lokala Excel-filer (publiceras inte)
+Tidplan.xlsx
+
+# Backups publiceras inte
+backups/
+
+# Lokala skript (ej nödvändiga för webbplatsen)
+save_master_snapshot.ps1
