@@ -826,7 +826,7 @@ def build_html(rows, countries, frame_start, last_date, planner_mode=False):
                                 <h1>{title_text}</h1>
                             <div class="head-actions">
 {switch_link}
-                                <button id="saveChangesBtn" class="btn-secondary" type="button">Save changes</button>
+                                <button id="saveChangesBtn" class="btn-secondary" type="button">Save locally</button>
                                 <button id="undoBtn" class="btn-secondary" type="button">Undo</button>
                                 <button id="redoBtn" class="btn-secondary" type="button">Redo</button>
                                 <button id="exportExcelBtnTop" class="btn-secondary" type="button">Export Excel</button>
@@ -1429,12 +1429,12 @@ def build_html(rows, countries, frame_start, last_date, planner_mode=False):
                 const jsonStr = JSON.stringify(payload);
                 window.localStorage.setItem(STORAGE_KEY, jsonStr);
                 statusText.classList.remove('error');
-                statusText.textContent = `Changes saved locally in the browser. (${{Math.round(jsonStr.length / 1024)}}KB used)`;
+                statusText.textContent = `Saved locally in this browser only. Publish by committing and pushing updated files to GitHub. (${{Math.round(jsonStr.length / 1024)}}KB used)`;
                 console.log('State saved successfully. From:', state.fromDate, 'To:', state.toDate);
             }} catch (err) {{
                 statusText.classList.add('error');
                 const errorMsg = err.message ? ` (${{err.message}})` : '';
-                statusText.textContent = `Could not save locally. Storage full or permissions issue.${{errorMsg}}`;
+                statusText.textContent = `Could not save locally in this browser. Storage full or permissions issue.${{errorMsg}}`;
                 console.error('Failed to save state:', err);
             }}
         }}
@@ -3814,7 +3814,7 @@ def build_html(rows, countries, frame_start, last_date, planner_mode=False):
         const restored = loadSavedState();
         if (restored) {{
             statusText.classList.remove('error');
-            statusText.textContent = 'Loaded previously saved changes.';
+            statusText.textContent = 'Loaded locally saved browser changes.';
         }}
         renderChart();
     </script>
