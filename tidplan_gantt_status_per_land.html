@@ -3257,6 +3257,30 @@ ${lifecycleHoverText(rowRef)}`;
             return lines.join('\n');
         }
 
+        function countRenderedServerRows(svgNode, visibleRows) {
+            if (!svgNode || !Array.isArray(visibleRows) || !visibleRows.length) {
+                return 0;
+            }
+
+            const expectedByLabel = new Map();
+            visibleRows.forEach((rowRef) => {
+                const key = normalizeLabel(sanitizeMermaidLabel(buildServerLabel(rowRef)));
+                expectedByLabel.set(key, (expectedByLabel.get(key) || 0) + 1);
+            });
+
+            let matched = 0;
+            svgNode.querySelectorAll('text').forEach((node) => {
+                const key = normalizeLabel(String(node.textContent || ''));
+                const remaining = expectedByLabel.get(key) || 0;
+                if (remaining > 0) {
+                    expectedByLabel.set(key, remaining - 1);
+                    matched += 1;
+                }
+            });
+
+            return matched;
+        }
+
         async function renderChart() {
             const fromDate = fromInput.value;
             const toDate = toInput.value;
@@ -3288,6 +3312,14 @@ ${lifecycleHoverText(rowRef)}`;
             try {
                 const { svg } = await mermaid.render(renderId, mermaidText);
                 chart.innerHTML = svg;
+                const renderedSvg = chart.querySelector('svg');
+                const renderedRows = countRenderedServerRows(renderedSvg, visibleRows);
+                if (renderedRows < visibleRows.length) {
+                    statusText.classList.add('error');
+                    statusText.textContent = `Mermaid omitted ${visibleRows.length - renderedRows} server rows. Showing exact fallback chart.`;
+                    renderFallbackChart(visibleRows, fromDate, toDate);
+                    return;
+                }
                 addDragToReschedule(visibleRows);
                 addServerTooltips(visibleRows);
             } catch (err) {
