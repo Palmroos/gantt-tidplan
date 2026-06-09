@@ -841,7 +841,7 @@ def build_html(rows, countries, frame_start, last_date, planner_mode=False):
               <span id="masterBackupLabel" class="master-label">Master copy: {master_backup_label}</span>
               <a id="openMasterCopyLink" class="btn-secondary nav-link" href="backups/master_snapshot/{master_copy_file}" target="_blank" rel="noreferrer">Open master copy</a>
               <button id="restoreFromMasterBtn" class="btn-secondary" type="button">Load master copy</button>
-              <button id="saveToMasterBtn" class="btn-secondary" type="button">Save to master copy</button>
+              <button id="saveToMasterBtn" class="btn-secondary" type="button">Save for publish</button>
           </div>
       </div>
             <section class="overview" aria-label="Overview">
@@ -1493,7 +1493,7 @@ def build_html(rows, countries, frame_start, last_date, planner_mode=False):
             }}
             statusText.classList.remove('error');
             statusText.textContent = autoDownload
-                ? `Master copy files downloaded (${{currentViewFileName}} + MASTER_BACKUP.txt). Move them to backups/master_snapshot.`
+                ? `Saved for publish. Move the downloaded files to backups/master_snapshot, then run .\\publish_master_snapshot.ps1.`
                 : 'Could not save master copy directly in this view.';
         }}
 
@@ -1552,11 +1552,11 @@ def build_html(rows, countries, frame_start, last_date, planner_mode=False):
                     masterBackupLabel.textContent = `Master copy: master_snapshot refreshed: ${{savedAt}}`;
                 }}
                 statusText.classList.remove('error');
-                statusText.textContent = `Current view saved to ${{resolved.pathHint}}.`;
+                statusText.textContent = `Saved for publish to ${{resolved.pathHint}}. Next step: run .\\publish_master_snapshot.ps1.`;
             }} catch (err) {{
                 if (err && err.name === 'AbortError') {{
                     statusText.classList.remove('error');
-                    statusText.textContent = 'Save to master copy was cancelled.';
+                    statusText.textContent = 'Save for publish was cancelled.';
                     return;
                 }}
                 if (err && err.name === 'SecurityError') {{
@@ -1566,7 +1566,7 @@ def build_html(rows, countries, frame_start, last_date, planner_mode=False):
                 statusText.classList.add('error');
                 const errName = err && err.name ? String(err.name) : 'UnknownError';
                 const errMsg = err && err.message ? String(err.message) : 'Unknown error';
-                statusText.textContent = `Could not save to master copy (${{errName}}: ${{errMsg}}).`;
+                statusText.textContent = `Could not save for publish (${{errName}}: ${{errMsg}}).`;
             }}
         }}
 
