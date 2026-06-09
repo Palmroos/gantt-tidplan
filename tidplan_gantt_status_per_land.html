@@ -465,7 +465,7 @@
                                 <h1>Upgrade Plan 2026 - Production Schedule</h1>
                             <div class="head-actions">
                                 <a class="btn-secondary nav-link" href="tidplan_gantt_kalkyl.html">Go to planning view</a>
-                                <button id="saveChangesBtn" class="btn-secondary" type="button">Save locally</button>
+                                <button id="saveChangesBtn" class="btn-secondary" type="button">Save changes</button>
                                 <button id="undoBtn" class="btn-secondary" type="button">Undo</button>
                                 <button id="redoBtn" class="btn-secondary" type="button">Redo</button>
                                 <button id="exportExcelBtnTop" class="btn-secondary" type="button">Export Excel</button>
@@ -480,7 +480,7 @@
               <span id="masterBackupLabel" class="master-label">Master copy: master_snapshot refreshed: 2026-06-08 12:45:14</span>
               <a id="openMasterCopyLink" class="btn-secondary nav-link" href="backups/master_snapshot/tidplan_gantt_status_per_land.html" target="_blank" rel="noreferrer">Open master copy</a>
               <button id="restoreFromMasterBtn" class="btn-secondary" type="button">Load master copy</button>
-              <button id="saveToMasterBtn" class="btn-secondary" type="button">Save for publish</button>
+              <button id="saveToMasterBtn" class="btn-secondary" type="button">Save to master copy</button>
           </div>
       </div>
             <section class="overview" aria-label="Overview">
@@ -1063,22 +1063,17 @@
 
         function saveCurrentState() {
             try {
-                const state = snapshotState();
                 const payload = {
                     version: 1,
                     savedAt: new Date().toISOString(),
-                    state: state,
+                    state: snapshotState(),
                 };
-                const jsonStr = JSON.stringify(payload);
-                window.localStorage.setItem(STORAGE_KEY, jsonStr);
+                window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
                 statusText.classList.remove('error');
-                statusText.textContent = `Saved locally in this browser only. Publish by committing and pushing updated files to GitHub. (${Math.round(jsonStr.length / 1024)}KB used)`;
-                console.log('State saved successfully. From:', state.fromDate, 'To:', state.toDate);
+                statusText.textContent = 'Changes saved locally in the browser.';
             } catch (err) {
                 statusText.classList.add('error');
-                const errorMsg = err.message ? ` (${err.message})` : '';
-                statusText.textContent = `Could not save locally in this browser. Storage full or permissions issue.${errorMsg}`;
-                console.error('Failed to save state:', err);
+                statusText.textContent = 'Could not save locally. Check browser permissions.';
             }
         }
 
@@ -1139,7 +1134,7 @@ Purpose: stable master baseline separate from latest_snapshot
             }
             statusText.classList.remove('error');
             statusText.textContent = autoDownload
-                ? `Saved for publish. Move the downloaded files to backups/master_snapshot, then run .\publish_master_snapshot.ps1.`
+                ? `Master copy files downloaded (${currentViewFileName} + MASTER_BACKUP.txt). Move them to backups/master_snapshot.`
                 : 'Could not save master copy directly in this view.';
         }
 
@@ -1202,11 +1197,11 @@ Purpose: stable master baseline separate from latest_snapshot
                     masterBackupLabel.textContent = `Master copy: master_snapshot refreshed: ${savedAt}`;
                 }
                 statusText.classList.remove('error');
-                statusText.textContent = `Saved for publish to ${resolved.pathHint}. Next step: run .\publish_master_snapshot.ps1.`;
+                statusText.textContent = `Current view saved to ${resolved.pathHint}.`;
             } catch (err) {
                 if (err && err.name === 'AbortError') {
                     statusText.classList.remove('error');
-                    statusText.textContent = 'Save for publish was cancelled.';
+                    statusText.textContent = 'Save to master copy was cancelled.';
                     return;
                 }
                 if (err && err.name === 'SecurityError') {
@@ -1216,7 +1211,7 @@ Purpose: stable master baseline separate from latest_snapshot
                 statusText.classList.add('error');
                 const errName = err && err.name ? String(err.name) : 'UnknownError';
                 const errMsg = err && err.message ? String(err.message) : 'Unknown error';
-                statusText.textContent = `Could not save for publish (${errName}: ${errMsg}).`;
+                statusText.textContent = `Could not save to master copy (${errName}: ${errMsg}).`;
             }
         }
 
@@ -1747,17 +1742,9 @@ Purpose: stable master baseline separate from latest_snapshot
             const totalDays = Math.max(1, daysBetween(fromDate, toDate) + 1);
             const pxPerDay = 18;
 
-            const expandDateWindow = (startIso, endIso) => {
-                if (fromInput && startIso && (!fromInput.value || startIso < fromInput.value)) {
-                    fromInput.value = startIso;
-                }
-                if (toInput && endIso && (!toInput.value || endIso > toInput.value)) {
-                    toInput.value = endIso;
-                }
-            };
-
             const placeBar = (rowRef, barEl) => {
                 rowRef.duration = Math.max(1, Number(rowRef.duration || 1));
+                rowRef.date = clampDate(rowRef.date, fromDate, toDate);
                 const startOffset = Math.max(0, Math.min(totalDays - 1, daysBetween(fromDate, rowRef.date)));
                 barEl.style.left = `${startOffset * pxPerDay}px`;
                 barEl.style.width = `${Math.max(12, rowRef.duration * pxPerDay)}px`;
@@ -1885,7 +1872,7 @@ Purpose: stable master baseline separate from latest_snapshot
                             const deltaPx = moveEv.clientX - dragStartX;
                             moved = moved || Math.abs(deltaPx) >= 3;
                             dragDays = Math.round(deltaPx / pxPerDay);
-                            const previewDate = addDays(dragStartDate, dragDays);
+                            const previewDate = clampDate(addDays(dragStartDate, dragDays), fromDate, toDate);
                             rowRef.date = previewDate;
                             placeBar(rowRef, barEl);
                             liveEl.textContent = `${previewDate} -> ${getEndDate(previewDate, rowRef.duration)}`;
@@ -1907,8 +1894,7 @@ Purpose: stable master baseline separate from latest_snapshot
                             }
 
                             pushUndoSnapshot();
-                            rowRef.date = addDays(dragStartDate, dragDays);
-                            expandDateWindow(rowRef.date, getEndDate(rowRef.date, rowRef.duration));
+                            rowRef.date = clampDate(addDays(dragStartDate, dragDays), fromDate, toDate);
                             placeBar(rowRef, barEl);
                             statusText.classList.remove('error');
                             statusText.textContent = '';
@@ -1953,7 +1939,6 @@ Purpose: stable master baseline separate from latest_snapshot
 
                     pushUndoSnapshot();
                     rowRef.duration = Math.max(1, daysBetween(rowRef.date, pickedTo) + 1);
-                    expandDateWindow(rowRef.date, pickedTo);
                     placeBar(rowRef, barEl);
                     closePicker();
                     statusText.classList.remove('error');
@@ -2030,27 +2015,22 @@ Purpose: stable master baseline separate from latest_snapshot
                 }
 
                 if (fromFilter || toFilter) {
-                    // Fix: Properly handle fromFilter and toFilter
-                    // If only one is provided, use it as both start and end
-                    const filterStart = fromFilter && toFilter ? Math.min(fromFilter, toFilter) : (fromFilter || toFilter || '');
-                    const filterEnd = fromFilter && toFilter ? Math.max(fromFilter, toFilter) : (fromFilter || toFilter || '');
-                    
-                    if (filterStart || filterEnd) {
-                        const inMainRange = intersectsRange(
-                            rowRef.date,
-                            getEndDate(rowRef.date, Math.max(1, Number(rowRef.duration || 1))),
-                            filterStart,
-                            filterEnd,
-                        );
-                        const inSwapRange = intersectsRange(
-                            rowRef.ipSwapStartDate,
-                            rowRef.ipSwapEndDate,
-                            filterStart,
-                            filterEnd,
-                        );
-                        if (!inMainRange && !inSwapRange) {
-                            return false;
-                        }
+                    const filterStart = fromFilter || toFilter;
+                    const filterEnd = toFilter || fromFilter;
+                    const inMainRange = intersectsRange(
+                        rowRef.date,
+                        getEndDate(rowRef.date, Math.max(1, Number(rowRef.duration || 1))),
+                        filterStart,
+                        filterEnd,
+                    );
+                    const inSwapRange = intersectsRange(
+                        rowRef.ipSwapStartDate,
+                        rowRef.ipSwapEndDate,
+                        filterStart,
+                        filterEnd,
+                    );
+                    if (!inMainRange && !inSwapRange) {
+                        return false;
                     }
                 }
 
@@ -3464,7 +3444,7 @@ ${lifecycleHoverText(rowRef)}`;
         const restored = loadSavedState();
         if (restored) {
             statusText.classList.remove('error');
-            statusText.textContent = 'Loaded locally saved browser changes.';
+            statusText.textContent = 'Loaded previously saved changes.';
         }
         renderChart();
     </script>
