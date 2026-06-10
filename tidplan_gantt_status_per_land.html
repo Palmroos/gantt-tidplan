@@ -919,9 +919,23 @@ Note: This server replace no06imepapp on a new site Lorenskog. NO IP swap is pos
             .split('\\')
             .join('/')
             .toLowerCase();
+        const pageSearchParams = new URLSearchParams(window.location.search || '');
+        const forcePublishedView = pageSearchParams.get('source') === 'published';
         const isPlanningView = locationProbe.includes('tidplan_gantt_kalkyl.html');
         const currentViewFileName = isPlanningView ? 'tidplan_gantt_kalkyl.html' : 'tidplan_gantt_status_per_land.html';
         const isMasterSnapshotView = locationProbe.includes('master_snapshot');
+
+        function withPublishedSource(url) {
+            const base = String(url || '').split('?')[0];
+            return `${base}?source=published`;
+        }
+
+        if (forcePublishedView) {
+            const planningLink = document.querySelector('.head-actions .nav-link');
+            if (planningLink && planningLink.getAttribute('href')) {
+                planningLink.setAttribute('href', withPublishedSource(planningLink.getAttribute('href')));
+            }
+        }
 
         if (isMasterSnapshotView) {
             [openMasterCopyLink, restoreFromMasterBtn, saveToMasterBtn].forEach((node) => {
@@ -3657,10 +3671,13 @@ ${lifecycleHoverText(rowRef)}`;
         updateFullscreenButtonLabel();
         updateUndoButton();
         updateRedoButton();
-        const restored = loadSavedState();
+        const restored = forcePublishedView ? false : loadSavedState();
         if (restored) {
             statusText.classList.remove('error');
             statusText.textContent = 'Loaded previously saved changes.';
+        } else if (forcePublishedView) {
+            statusText.classList.remove('error');
+            statusText.textContent = 'Showing published status (local browser data ignored).';
         }
         renderChart();
     </script><div id="dragLiveTip" style="position: fixed; z-index: 10000; pointer-events: none; background: rgb(15, 23, 42); color: rgb(255, 255, 255); font-size: 12px; border-radius: 6px; padding: 4px 8px; box-shadow: rgba(15, 23, 42, 0.25) 0px 2px 10px; display: none;"></div><div id="serverHoverTip" style="position: fixed; z-index: 9999; pointer-events: none; background: rgb(15, 23, 42); color: rgb(255, 255, 255); font-size: 12px; border-radius: 6px; padding: 4px 8px; box-shadow: rgba(15, 23, 42, 0.25) 0px 2px 10px; white-space: pre-line; max-width: 360px; display: none;"></div>

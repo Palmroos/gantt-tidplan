@@ -750,9 +750,23 @@
             .split('\\')
             .join('/')
             .toLowerCase();
+        const pageSearchParams = new URLSearchParams(window.location.search || '');
+        const forcePublishedView = pageSearchParams.get('source') === 'published';
         const isPlanningView = locationProbe.includes('tidplan_gantt_kalkyl.html');
         const currentViewFileName = isPlanningView ? 'tidplan_gantt_kalkyl.html' : 'tidplan_gantt_status_per_land.html';
         const isMasterSnapshotView = locationProbe.includes('master_snapshot');
+
+        function withPublishedSource(url) {
+            const base = String(url || '').split('?')[0];
+            return `${base}?source=published`;
+        }
+
+        if (forcePublishedView) {
+            const productionLink = document.querySelector('.head-actions .nav-link');
+            if (productionLink && productionLink.getAttribute('href')) {
+                productionLink.setAttribute('href', withPublishedSource(productionLink.getAttribute('href')));
+            }
+        }
 
         if (isMasterSnapshotView) {
             [openMasterCopyLink, restoreFromMasterBtn, saveToMasterBtn].forEach((node) => {
@@ -3488,10 +3502,13 @@ ${lifecycleHoverText(rowRef)}`;
         updateFullscreenButtonLabel();
         updateUndoButton();
         updateRedoButton();
-        const restored = loadSavedState();
+        const restored = forcePublishedView ? false : loadSavedState();
         if (restored) {
             statusText.classList.remove('error');
             statusText.textContent = 'Loaded previously saved changes.';
+        } else if (forcePublishedView) {
+            statusText.classList.remove('error');
+            statusText.textContent = 'Showing published planning view (local browser data ignored).';
         }
         renderChart();
     </script>
