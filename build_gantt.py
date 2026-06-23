@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import date, datetime
 from pathlib import Path
 
@@ -12,7 +13,6 @@ OUT_MD = ROOT / "tidplan_gantt_generated.md"
 OUT_STATUS_MD = ROOT / "tidplan_gantt_status_per_land.md"
 OUT_STATUS_HTML = ROOT / "tidplan_gantt_status_per_land.html"
 OUT_CALC_HTML = ROOT / "tidplan_gantt_kalkyl.html"
-OUT_INDEX_HTML = ROOT / "index.html"
 BACKUP_STATUS_HTML = ROOT / "backups" / "latest_snapshot" / "tidplan_gantt_status_per_land.html"
 MASTER_BACKUP_FILE = ROOT / "backups" / "MASTER_BACKUP.txt"
 
@@ -3838,8 +3838,8 @@ def verify_against_backup_markers(html_text: str) -> None:
     backup_text = BACKUP_STATUS_HTML.read_text(encoding="utf-8")
     baseline_missing = [snippet for snippet in DRAG_EDITOR_REQUIRED_SNIPPETS if snippet not in backup_text]
     if baseline_missing:
-        # Older backups can be stale; keep generation unblocked and validate current output instead.
-        return
+        # Relaxed check to allow GitHub Pages publishing
+        print("WARNING: Backup is missing expected drag editor markers: " + ", ".join(baseline_missing))
     generated_missing = [snippet for snippet in DRAG_EDITOR_REQUIRED_SNIPPETS if snippet not in html_text]
     if generated_missing:
         raise RuntimeError(
@@ -3883,18 +3883,19 @@ def main():
     OUT_STATUS_MD.write_text(status_md, encoding="utf-8")
     OUT_STATUS_HTML.write_text(html_prod, encoding="utf-8")
     OUT_CALC_HTML.write_text(html_calc, encoding="utf-8")
-    OUT_INDEX_HTML.write_text(html_prod, encoding="utf-8")
 
     print("Updated files:")
     print("- tidplan_gantt_generated.md")
     print("- tidplan_gantt_status_per_land.md")
     print("- tidplan_gantt_status_per_land.html")
     print("- tidplan_gantt_kalkyl.html")
-    print("- index.html")
     print("- Drag editor integrity check: OK")
     print(f"Date range: {iso(frame_start)} to {iso(last_date)}")
     print(f"Countries: {', '.join(countries)}")
     print(f"Rows: {len(rows)}")
+
+    # Copy latest Gantt snapshot for GitHub Pages publishing
+    shutil.copyfile(OUT_STATUS_HTML, ROOT / "index.html")
 
 
 if __name__ == "__main__":

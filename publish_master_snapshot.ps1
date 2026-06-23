@@ -19,6 +19,15 @@ $publishFiles = @(
     'tidplan_gantt_generated.md'
 )
 
+# Keep master snapshot in sync with current workspace so publish always uses latest updates.
+foreach ($file in $publishFiles) {
+    $workspaceSource = Join-Path $repo $file
+    $masterTarget = Join-Path $masterDir $file
+    if (Test-Path $workspaceSource) {
+        Copy-Item -Path $workspaceSource -Destination $masterTarget -Force
+    }
+}
+
 $copied = @()
 foreach ($file in $publishFiles) {
     $source = Join-Path $masterDir $file
